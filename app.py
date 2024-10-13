@@ -1,4 +1,4 @@
-import pickle
+import joblib
 import bz2
 from flask import Flask, request, jsonify, render_template
 import numpy as np
@@ -7,12 +7,9 @@ from sklearn.preprocessing import StandardScaler
 
 app = Flask(__name__)
 
-# Import Classification and Regression model files
-with bz2.BZ2File('model/classification.pkl', 'rb') as pickle_in:
-    model_C = pickle.load(pickle_in)
-
-with bz2.BZ2File('model/regression.pkl', 'rb') as R_pickle_in:
-    model_R = pickle.load(R_pickle_in)
+# Import Classification and Regression model files using joblib
+model_C = joblib.load('model/classification.pkl')
+model_R = joblib.load('model/regression.pkl')
 
 # Load sample data (replace with actual training data range if available)
 # Ensure the scaler is fitted on the actual dataset and not default values
@@ -42,29 +39,30 @@ def predict():
     try:
         # Get input data from the form
         data = [float(x) for x in request.form.values()]
-        final_features = np.array([data])  # Convert to NumPy array
-
+        final_features = [np.array(data)]
+        
         # Log the input data for debugging
         print(f"Raw Input Data: {data}")
-
+        
         # Transform data using the scaler
         final_features = scaler.transform(final_features)
         print(f"Scaled Input Data: {final_features}")  # Log scaled data
-
+        
         # Predict using the classification model
         output = model_C.predict(final_features)[0]
         print(f"Classification Output: {output}")  # Log prediction
 
         # Output message based on the prediction
         if output == 0:
-            message = "Forest is Safe! --- No Fire Danger Detected"
+            text = 'Forest is Safe!'
+            message = "{} --- No Fire Danger Detected".format(text)
         else:
-            message = "Forest is in Danger! --- There is a Chance of Fire"
+            text = 'Forest is in Danger!'
+            message = "{} --- There is a Chance of Fire".format(text)
 
         return render_template('index.html', prediction_text1=message)
-
+    
     except Exception as e:
-        print(f"Error: {e}")  # Log the error for debugging
         return render_template('index.html', prediction_text1="Check the Input again!!!", error=str(e))
 
 # Route for Regression Model Prediction
@@ -73,29 +71,30 @@ def predictR():
     try:
         # Get input data from form
         data = [float(x) for x in request.form.values()]
-        final_features = np.array([data])  # Convert to NumPy array
+        final_features = [np.array(data)]
 
         # Log the input data for debugging
         print(f"Raw Input Data: {data}")
-
+        
         # Transform data using the scaler
         final_features = scaler.transform(final_features)
         print(f"Scaled Input Data: {final_features}")  # Log scaled data
-
+        
         # Predict using the regression model
         output = model_R.predict(final_features)[0]
         print(f"Regression Output: {output}")  # Log prediction
 
         # Output message based on the prediction
         if output > 15:
-            message = "Forest is in Danger! --- There is a Chance of Fire"
+            text = 'Forest is in Danger!'
+            message = "{} --- There is a Chance of Fire".format(text)
         else:
-            message = "Forest is Safe! --- No Fire Danger Detected"
+            text = 'Forest is Safe!'
+            message = "{} --- No Fire Danger Detected".format(text)
 
         return render_template('index.html', prediction_text2=message)
-
+    
     except Exception as e:
-        print(f"Error: {e}")  # Log the error for debugging
         return render_template('index.html', prediction_text2="Check the Input again!!!", error=str(e))
 
 # Run the app in Debug mode
